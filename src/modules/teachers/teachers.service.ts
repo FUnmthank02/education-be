@@ -30,6 +30,19 @@ export class TeachersService {
     return { students: studentEmails };
   }
 
+  async suspendStudent(studentEmail: string): Promise<void> {
+    const student = await this.prisma.student.findUnique({
+      where: { email: studentEmail },
+    });
+    if (!student)
+      throw new NotFoundException(ERRORS.STUDENT_NOT_FOUND(studentEmail));
+
+    await this.prisma.student.update({
+      where: { email: studentEmail },
+      data: { isSuspended: true },
+    });
+  }
+
   async findTeacherByEmail(email: string) {
     const teacher = await this.prisma.teacher.findUnique({ where: { email } });
     if (!teacher) throw new NotFoundException(ERRORS.TEACHER_NOT_FOUND(email));

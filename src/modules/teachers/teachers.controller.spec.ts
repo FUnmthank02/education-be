@@ -3,6 +3,7 @@ import { TeachersController } from './teachers.controller';
 import { TeachersService } from './teachers.service';
 import { RegisterStudentsDto } from './dto/register-student.dto';
 import { CommonStudentsQueryDto } from './dto/common-students.dto';
+import { SuspendStudentDto } from './dto/suspend-student.dto';
 import { NotFoundException } from '@nestjs/common';
 
 describe('TeachersController', () => {
@@ -87,6 +88,21 @@ describe('TeachersController', () => {
         query.teacher,
       );
       expect(teachersService.getCommonStudents).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('suspendStudent', () => {
+    it('should call suspendStudent and return 204 No Content', async () => {
+      const dto: SuspendStudentDto = { student: 'student@example.com' };
+
+      (teachersService.suspendStudent as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      await expect(controller.suspendStudent(dto)).resolves.toBeUndefined();
+
+      expect(teachersService.suspendStudent).toHaveBeenCalledWith(dto.student);
+      expect(teachersService.suspendStudent).toHaveBeenCalledTimes(1);
     });
   });
 });
