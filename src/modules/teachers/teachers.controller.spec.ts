@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TeachersController } from './teachers.controller';
 import { TeachersService } from './teachers.service';
 import { RegisterStudentsDto } from './dto/register-student.dto';
+import { CommonStudentsQueryDto } from './dto/common-students.dto';
 import { NotFoundException } from '@nestjs/common';
 
 describe('TeachersController', () => {
@@ -64,6 +65,28 @@ describe('TeachersController', () => {
       );
 
       expect(teachersService.registerStudents).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe('getCommonStudents', () => {
+    it('should return common students', async () => {
+      const query: CommonStudentsQueryDto = {
+        teacher: ['teacher1@example.com', 'teacher2@example.com'],
+      };
+
+      const expectedResponse = { students: ['common@student.com'] };
+
+      (teachersService.getCommonStudents as jest.Mock).mockResolvedValue(
+        expectedResponse,
+      );
+
+      const result = await controller.getCommonStudents(query);
+      expect(result).toEqual(expectedResponse);
+
+      expect(teachersService.getCommonStudents).toHaveBeenCalledWith(
+        query.teacher,
+      );
+      expect(teachersService.getCommonStudents).toHaveBeenCalledTimes(1);
     });
   });
 });
