@@ -20,6 +20,16 @@ export class TeachersService {
     });
   }
 
+  async getCommonStudents(
+    teacherEmails: string[],
+  ): Promise<{ students: string[] }> {
+    if (!teacherEmails.length)
+      throw new NotFoundException(ERRORS.NO_TEACHER_PROVIDED);
+    const commonStudentIds = await this.findCommonStudentIds(teacherEmails);
+    const studentEmails = await this.getStudentEmails(commonStudentIds);
+    return { students: studentEmails };
+  }
+
   async findTeacherByEmail(email: string) {
     const teacher = await this.prisma.teacher.findUnique({ where: { email } });
     if (!teacher) throw new NotFoundException(ERRORS.TEACHER_NOT_FOUND(email));
@@ -36,5 +46,28 @@ export class TeachersService {
         }),
       ),
     );
+  }
+
+  async findCommonStudentIds(teacherEmails: string[]) {
+    const teacherStudents = await this.prisma.teacher.findMany({
+      where: { email: { in: teacherEmails } },
+      include: { students: { select: { studentId: true } } },
+    });
+
+    if (teacherStudents.length !== teacherEmails.length) {
+      throw new NotFoundException(ERRORS.TEACHER_MISMATCH);
+    }
+
+    return teacherStudents
+      .map((teacher) => teacher.students.map((s) => s.studentId))
+      .reduce((a, b) => a.filter((id) => b.includes(id)));
+  }
+
+  async getStudentEmails(studentIds: number[]) {
+    const students = await this.prisma.student.findMany({
+      where: { id: { in: studentIds } },
+      select: { email: true },
+    });
+    return students.map((s) => s.email);
   }
 }
