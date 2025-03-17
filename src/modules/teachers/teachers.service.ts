@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../configs/prisma/prisma.service';
 import { RegisterStudentsDto } from './dto/register-student.dto';
+import { extractMentionedEmails } from '../../utils/helpers.util';
+import { ReceiveNotificationsDto } from './dto/receive-notifications.dto';
 import { ERRORS } from '../../utils/constants.util';
 
 @Injectable()
@@ -41,6 +43,34 @@ export class TeachersService {
       where: { email: studentEmail },
       data: { isSuspended: true },
     });
+  }
+
+  async retrieveForNotifications(
+    dto: ReceiveNotificationsDto,
+  ): Promise<string[]> {
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { email: dto.teacher },
+      include: { students: { include: { student: true } } },
+    });
+    if (!teacher)
+      throw new NotFoundException(ERRORS.TEACHER_NOT_FOUND(dto.teacher));
+
+    const mentionedEmails = extractMentionedEmails(dto.notification);
+    const registeredStudents = teacher.students
+      .filter((ts) => !ts.student.isSuspended)
+      .map((ts) => ts.student.email);
+
+    const mentionedStudents = await this.prisma.student.findMany({
+      where: { email: { in: mentionedEmails }, isSuspended: false },
+      select: { email: true },
+    });
+
+    return Array.from(
+      new Set([
+        ...registeredStudents,
+        ...mentionedStudents.map((s) => s.email),
+      ]),
+    );
   }
 
   async findTeacherByEmail(email: string) {
