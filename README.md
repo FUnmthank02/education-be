@@ -1,7 +1,7 @@
 # Education Connection Backend
 
 ## 1. Description
-This project, 'education-connection', is a backend service designed to help teachers perform administrative functions for their students. It's built using the NestJS framework, offering robust API endpoints for clients.
+This project, 'education-be', is a backend service designed to help teachers perform administrative functions for their students. It's built using the NestJS framework, offering robust API endpoints for clients.
 
 ## 2. Features
 - Teacher can register students.
@@ -13,7 +13,7 @@ This project, 'education-connection', is a backend service designed to help teac
 This project is built using a robust tech stack for optimal performance and scalability:
 
 - **Backend Framework**: NestJS
-- **Database**: MySQL with TypeORM
+- **Database**: MySQL with Prisma
 - **Testing**: Jest
 - **Code Formatting and Linting**: ESLint, Prettier
 
@@ -37,21 +37,8 @@ To run this project, you will need to set up the following environment variables
 ```plaintext
 # MySQL Database
 #===
-MYSQL_PORT_EXPOSE=3307
-MYSQL_ROOT_PASSWORD=Root@123
-MYSQL_USER=admin
-MYSQL_PASSWORD=Admin@123
-MYSQL_DATABASE=education_connection
-
-# Server
-#===
-SERVER_PORT=8080
-DB_HOST_MYSQL=mysql-db
-DB_PORT_MYSQL=3306
-DB_USERNAME_MYSQL=admin
-DB_PASSWORD_MYSQL=Admin@123
-DB_NAME_MYSQL=education_connection
-DB_LOGGING=DISABLED
+DATABASE_URL="mysql://root:root@localhost:3306/education_db"
+PORT=8888
 ```
 
 ### 4.4. Run docker compose
@@ -60,19 +47,12 @@ At folder `education-be`, to build, start and run services:
 docker-compose up
 ```
 
-### 4.5. Seeding
-
-After the server is successfully up and running, you can proceed with running the seeding process.
-```
-docker exec -it education-connection-api npm run seed:run
-```
-
-### 4.6. Import Postman collection
+### 4.5. Import Postman collection
 Import the content of [Postman File](./education-be.postman_collection.json) to Postman following guide.
 ![Import postman guide](./images/import-postman-guide.png)
 
 
-### 4.7. Call the first api
+### 4.6. Call the first api
 Call the first api to get response.
 ![Test the first api](./images/test-first-api.png)
 
@@ -81,13 +61,13 @@ Call the first api to get response.
 ### 5.1. Database Migrations
 To run migrations:
 ```bash
-npm run migration:run
+npm run migration
 ```
 
 ### 5.2. Seeding
 To run for seeding:
 ```bash
-npm run seed:run
+npm run seed
 ```
 ### 5.3. Start application in development mode
 ```bash
@@ -110,5 +90,4 @@ npm run test:cov
 ```
 
 ## 6. Note
-- Following the requirement, I didn't create the API for registering a specific teacher or a specific student. Please run the seeding first to generate data. 
 - Attach the postman file: [Postman File](./education-connection.postman_collection.json)
