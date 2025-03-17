@@ -126,4 +126,27 @@ describe('TeachersService', () => {
       NotFoundException,
     );
   });
+
+  // Test suspendStudent
+  it('should suspend student successfully', async () => {
+    (prisma.student.findUnique as jest.Mock).mockResolvedValue({
+      email: 'student@example.com',
+      isSuspended: false,
+    });
+
+    await service.suspendStudent('student@example.com');
+
+    expect(prisma.student.update).toHaveBeenCalledWith({
+      where: { email: 'student@example.com' },
+      data: { isSuspended: true },
+    });
+  });
+
+  it('should throw NotFoundException if student is not found', async () => {
+    (prisma.student.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      service.suspendStudent('nonexistent@example.com'),
+    ).rejects.toThrow(NotFoundException);
+  });
 });
