@@ -1,108 +1,191 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TeachersController } from './teachers.controller';
 import { TeachersService } from './teachers.service';
-import { RegisterStudentsDto } from './dto/register-student.dto';
-import { CommonStudentsQueryDto } from './dto/common-students.dto';
-import { SuspendStudentDto } from './dto/suspend-student.dto';
+import { PrismaService } from '../../configs/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
-describe('TeachersController', () => {
-  let controller: TeachersController;
-  let teachersService: TeachersService;
+describe('TeachersService', () => {
+  let service: TeachersService;
+  let prisma: PrismaService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [TeachersController],
       providers: [
+        TeachersService,
         {
-          provide: TeachersService,
+          provide: PrismaService,
           useValue: {
-            registerStudents: jest.fn(),
-            getCommonStudents: jest.fn(),
-            suspendStudent: jest.fn(),
-            retrieveForNotifications: jest.fn(),
+            teacher: { findUnique: jest.fn(), findMany: jest.fn() },
+            student: {
+              findUnique: jest.fn(),
+              update: jest.fn(),
+              findMany: jest.fn(),
+              upsert: jest.fn(),
+            },
+            teacherStudent: { createMany: jest.fn() },
           },
         },
       ],
     }).compile();
 
-    controller = module.get<TeachersController>(TeachersController);
-    teachersService = module.get<TeachersService>(TeachersService);
+    service = module.get<TeachersService>(TeachersService);
+    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(service).toBeDefined();
   });
 
-  describe('registerStudents', () => {
-    it('should call registerStudents and return 204 No Content', async () => {
-      const dto: RegisterStudentsDto = {
-        teacher: 'teacher@example.com',
-        students: ['student1@example.com', 'student2@example.com'],
-      };
+  // ✅ Test registerStudents
+  it('should register students successfully', async () => {
+    const dto = {
+      teacher: 'teacher@example.com',
+      students: ['student1@example.com', 'student2@example.com'],
+    };
 
-      (teachersService.registerStudents as jest.Mock).mockResolvedValue(
-        undefined,
-      );
-
-      await expect(controller.registerStudents(dto)).resolves.toBeUndefined();
-
-      expect(teachersService.registerStudents).toHaveBeenCalledWith(dto);
-      expect(teachersService.registerStudents).toHaveBeenCalledTimes(1);
+    // ✅ Mock the teacher correctly
+    (prisma.teacher.findUnique as jest.Mock).mockResolvedValue({
+      id: 1,
+      email: dto.teacher, // Ensure the 'email' property is included
     });
 
-    it('should throw NotFoundException if teacher is not found', async () => {
-      const dto: RegisterStudentsDto = {
-        teacher: 'invalid-email',
-        students: ['student1@example.com'],
-      };
+    (prisma.student.upsert as jest.Mock)
+      .mockResolvedValueOnce({ id: 101, email: 'student1@example.com' })
+      .mockResolvedValueOnce({ id: 102, email: 'student2@example.com' });
 
-      (teachersService.registerStudents as jest.Mock).mockRejectedValue(
-        new NotFoundException(),
-      );
-
-      await expect(controller.registerStudents(dto)).rejects.toThrow(
-        NotFoundException,
-      );
-
-      expect(teachersService.registerStudents).toHaveBeenCalledWith(dto);
+    (prisma.teacherStudent.createMany as jest.Mock).mockResolvedValue({
+      count: 2,
     });
-  });
 
-  describe('getCommonStudents', () => {
-    it('should return common students', async () => {
-      const query: CommonStudentsQueryDto = {
-        teacher: ['teacher1@example.com', 'teacher2@example.com'],
-      };
+    await service.registerStudents(dto);
 
-      const expectedResponse = { students: ['common@student.com'] };
+    // ✅ Check if the Prisma calls were made correctly
+    expect(prisma.teacher.findUnique).toHaveBeenCalledWith({
+      where: { email: dto.teacher },
+    });
 
-      (teachersService.getCommonStudents as jest.Mock).mockResolvedValue(
-        expectedResponse,
-      );
-
-      const result = await controller.getCommonStudents(query);
-      expect(result).toEqual(expectedResponse);
-
-      expect(teachersService.getCommonStudents).toHaveBeenCalledWith(
-        query.teacher,
-      );
-      expect(teachersService.getCommonStudents).toHaveBeenCalledTimes(1);
+    expect(prisma.student.upsert).toHaveBeenCalledTimes(2);
+    expect(prisma.teacherStudent.createMany).toHaveBeenCalledWith({
+      data: [
+        { teacherId: 1, studentId: 101 },
+        { teacherId: 1, studentId: 102 },
+      ],
+      skipDuplicates: true,
     });
   });
 
-  describe('suspendStudent', () => {
-    it('should call suspendStudent and return 204 No Content', async () => {
-      const dto: SuspendStudentDto = { student: 'student@example.com' };
+  it('should throw NotFoundException if teacher is not found', async () => {
+    (prisma.teacher.findUnique as jest.Mock).mockResolvedValue(null);
 
-      (teachersService.suspendStudent as jest.Mock).mockResolvedValue(
-        undefined,
-      );
+    await expect(
+      service.registerStudents({
+        teacher: 'invalid@example.com',
+        students: [],
+      }),
+    ).rejects.toThrow(NotFoundException);
+  });
 
-      await expect(controller.suspendStudent(dto)).resolves.toBeUndefined();
+  // ✅ Test getCommonStudents
+  it('should return common students', async () => {
+    (prisma.teacher.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 1,
+        students: [{ studentId: 101 }],
+      },
+      {
+        id: 2,
+        students: [{ studentId: 101 }],
+      },
+    ]);
 
-      expect(teachersService.suspendStudent).toHaveBeenCalledWith(dto.student);
-      expect(teachersService.suspendStudent).toHaveBeenCalledTimes(1);
+    (prisma.student.findMany as jest.Mock).mockResolvedValue([
+      { id: 101, email: 'common@student.com' },
+    ]);
+
+    const result = await service.getCommonStudents([
+      'teacher1@example.com',
+      'teacher2@example.com',
+    ]);
+
+    expect(result).toEqual({ students: ['common@student.com'] });
+
+    expect(prisma.teacher.findMany).toHaveBeenCalledWith({
+      where: {
+        email: { in: ['teacher1@example.com', 'teacher2@example.com'] },
+      },
+      include: { students: { select: { studentId: true } } },
     });
+
+    expect(prisma.student.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [101] } },
+      select: { email: true },
+    });
+  });
+
+  it('should throw NotFoundException if no teachers provided', async () => {
+    await expect(service.getCommonStudents([])).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  // ✅ Test suspendStudent
+  it('should suspend student successfully', async () => {
+    (prisma.student.findUnique as jest.Mock).mockResolvedValue({
+      email: 'student@example.com',
+      isSuspended: false,
+    });
+
+    await service.suspendStudent('student@example.com');
+
+    expect(prisma.student.update).toHaveBeenCalledWith({
+      where: { email: 'student@example.com' },
+      data: { isSuspended: true },
+    });
+  });
+
+  it('should throw NotFoundException if student is not found', async () => {
+    (prisma.student.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      service.suspendStudent('nonexistent@example.com'),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  // ✅ Test retrieveForNotifications
+  it('should retrieve students for notifications', async () => {
+    const dto = {
+      teacher: 'teacher@example.com',
+      notification: 'Hello @student1@example.com',
+    };
+
+    (prisma.teacher.findUnique as jest.Mock).mockResolvedValue({
+      email: 'teacher@example.com',
+      students: [
+        { student: { email: 'registered@student.com', isSuspended: false } },
+      ],
+    });
+
+    (prisma.student.findMany as jest.Mock).mockResolvedValue([
+      { email: 'student1@example.com' },
+    ]);
+
+    const result = await service.retrieveForNotifications(dto);
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        'registered@student.com',
+        'student1@example.com',
+      ]),
+    );
+  });
+
+  it('should throw NotFoundException if teacher is not found', async () => {
+    (prisma.teacher.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      service.retrieveForNotifications({
+        teacher: 'unknown@example.com',
+        notification: '',
+      }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

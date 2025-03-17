@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, HttpCode, Query } from '@nestjs/common';
 import { TeachersService } from './teachers.service';
 import { RegisterStudentsDto } from './dto/register-student.dto';
+import { ReceiveNotificationsDto } from './dto/receive-notifications.dto';
 import { CommonStudentsQueryDto } from './dto/common-students.dto';
 import { SuspendStudentDto } from './dto/suspend-student.dto';
 
@@ -23,5 +24,11 @@ export class TeachersController {
   @HttpCode(204)
   async suspendStudent(@Body() dto: SuspendStudentDto) {
     await this.teachersService.suspendStudent(dto.student);
+  }
+
+  @Post('retrievefornotifications')
+  @HttpCode(200)
+  async retrieveForNotifications(@Body() dto: ReceiveNotificationsDto) {
+    return await this.teachersService.retrieveForNotifications(dto);
   }
 }
