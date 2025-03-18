@@ -1,96 +1,234 @@
-# Education Backend
+## Table of Contents
 
-## 1. Description
-This project, 'education-be', is a backend service designed to help teachers perform administrative functions for their students. It's built using the NestJS framework, offering robust API endpoints for clients.
+- [Technologies used](#technologies-used)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+  - [Run the App](#run-the-app)
+  - [Run Unit Tests](#run-unit-tests)
+- [About the Project](#about-the-project)
+  - [Models](#models)
+  - [Design choices](#design-choices)
+  - [Endpoints](#endpoints)
 
-## 2. Features
-- Teacher can register students.
-- Teacher can retrieve a list of students common to a given list of teachers.
-- Teacher can suspend a specified student.
-- Teacher can retrieve a list of students who can receive a given notification.
+## Technologies Used
 
-## 3. Tech Stack
-This project is built using a robust tech stack for optimal performance and scalability:
+- **Backend**: NodeJS, ExpressJS
+- **Testing tool**: Jest
+- **Database**: MySQL, Prisma
+- **Containerization**: Docker engine and Docker Compose
 
-- **Backend Framework**: NestJS
-- **Database**: MySQL with Prisma
-- **Testing**: Jest
-- **Code Formatting and Linting**: ESLint, Prettier
+## Project Structure
 
-## 4. Server setup guide
-### 4.1. Prerequisites
-- Node.js v18.19.0
-- Docker
-- Postman
-
-### 4.2. Installation
-To install the project, follow these steps:
-
-```bash
-git clone https://github.com/FUnmthank02/education-be
-cd education-be
+```
+|───app
+|       app.controller.ts
+|       app.module.ts
+|       app.service.ts
+|
+|───common
+|       filters
+|               error-handler.filter.ts
+|       pipes
+|               customize-validation.pip.ts
+|
+|───configs
+|       prisma
+|               prisma.service.ts
+|
+|───modules
+|       teachers
+|               dto
+|                         common-students.dto.ts
+|                         receive-notifications.dto.ts
+|                         register-student.dto.ts
+|                         suspend-student.dto.ts
+|               teachers.controller.ts
+|               teachers.module.ts
+|               teachers.service.ts
+|               teachers.controller.spec.ts
+|               teachers.service.spec.ts
+|
+|───utils
+|       constants.util.ts
+|       helpers.util.ts
+│
+|───main.ts
+|
+└───test
+        app.e2e-spec.ts
+        jest-e2e.json
 ```
 
-### 4.3. Environment setup
+## Prerequisites
 
-To run this project, you will need to set up the following environment variables. You can do this by creating a `.env` file in folder `education-be`.
-```plaintext
-DATABASE_URL="mysql://root:root@mysql:3306/education_db"
-PORT=8888
-MYSQL_ROOT_PASSWORD=root
-MYSQL_DATABASE=education_db
-MYSQL_USER=admin
-MYSQL_PASSWORD=admin
-```
+Ensure that you have the following installed:
 
-### 4.4. Run docker compose
-At folder `education-be`, to build, start and run services:
+- [Docker](https://www.docker.com/get-started/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- Clone the repository and navigate to the project directory:
+
+  ```bash
+  git clone https://github.com/FUnmthank02/education-be.git
+  cd education-be
+  ```
+
+## Installation
+
+### Run the App
+
+#### 1. Build and start the containers
+
+Run the follow command to start the containers:
+
 ```bash
 docker-compose up --build
 ```
 
-### 4.5. Import Postman collection
-Import the content of [Postman File](./education-be.postman_collection.json) to Postman following guide.
-![Import postman guide](./images/import-postman-guide.png)
+This will setup:
 
-## 5. Other commands
+- A MySQL server in a container with a mounted volume for persistent storage
+- Seed the database with initial data (`seed.ts`)
+- Setup a NodeJS environment and the API server in another container
+- Run the server to listen on port 8888
 
-### 5.0. Database Migrations
-To run generate prisma:
-```bash
-npm run generate
+#### 2. Access the API server
+
+The application is available at:
+
+```
+http://localhost:8888
 ```
 
-### 5.1. Database Migrations
-To run migrations:
-```bash
-npm run migrate
+#### 3. Interact with the database
+
+First, open an interactive shell session inside the MySQL container
+
+```
+docker exec -it mysqldb sh
 ```
 
-### 5.2. Seeding
-To run for seeding:
-```bash
-npm run seed
+To access MySQL's shell, use the credentials and port listed in `.env`
+
 ```
-### 5.3. Start application in development mode
-```bash
-npm run start
-```
-### 5.4. Build application for production
-```bash
-npm run build
+mysql -h 127.0.0.1 -P 3306 -u root -ppassword education
 ```
 
-### 5.5. Run test
-To run tests:
-```bash
-npm run test
+Once in the shell, you can query the database (default db name is 'education')
+
+```
+show tables;
+select * from students;
 ```
 
-### 5.6. Running and checking coverage
-```bash
-npm run test:cov
+#### 4. Delete the containers
+
+Delete the containers and clean out the volume by running
+
+```
+docker-compose down -v
 ```
 
-## 6. Note
-- Attach the postman file: [Postman File](./education-be.postman_collection.json)
+### Run Unit Tests
+
+Similarly, open another interactive shell session inside the api server container and execute the test runner
+
+![test coverage](./docs/test-coverage.jpg)
+
+```bash
+docker exec -it api_server npm run test:cov
+```
+
+## About the Project
+
+The project is built around 2 data models `Student` and `Teacher` represented by their corresponding entities. Prisma was chosen to interact with the MySQL database. All main functionalities involve around managing the relationship between the two models, including handling registration, get common students, get notification list, and suspend a student.
+
+### Models
+
+We delegate management of the tables to Prisma, including the creation and handling of the bridge table TeacherStudent. The underlying database has following structure:
+
+(timestamp fields are also created and managed by Prisma)
+
+#### The Teacher Model
+
+Represents the teachers in the system, manages multiple student entities.
+
+- email: the primary key that uniquely identifies a teacher
+- students: a relation field representing a list of student entities that the teacher manages
+
+#### The Student Model
+
+Represents the students in the system, can be registered to multiple teacher entities.
+
+- email: the primary key that uniquely identifies a student
+- suspended: a boolean value indicating if a student is suspended or not
+- teachers: a relation field representing a list of teacher entities the student is registered to
+
+#### The TeacherStudent Model
+
+Facilitate the many-to-many relationship between the Teacher and Student entities by storing the association between their email addresses
+
+- teacherId: a foreign key referencing a row in the Teacher table
+- studentId: a foreign key referencing a row in the Student table
+
+Both foreign keys creates a composite primary key that uniquely identifies a relationship in the table. Prisma automatically manages and maintains the table and the relationship between the Student and Teacher tables.
+
+### Endpoints
+
+#### Register Students
+
+- **Endpoint:** `POST /api/register`
+- **Headers:** `Content-Type: application/json`
+- **Success Status:** 204
+- **Request Body:**
+  - `teacher`: Email of the teacher.
+  - `students`: List of student emails.
+
+#### Retrieve Common Students
+
+- **Endpoint:** `GET /api/commonstudents`
+- **Success Status:** 200
+- **Query Parameters:**
+  - `teacher`: One or more teacher emails.
+- **Success Response Example:**
+  ```json
+  {
+    "students": ["commonstudent1@gmail.com", "commonstudent2@gmail.com"]
+  }
+  ```
+
+#### Suspend a Student
+
+- **Endpoint:** `POST /api/suspend`
+- **Headers:** `Content-Type: application/json`
+- **Success Status:** 204
+- **Request Body:**
+  - `student`: Email of the student.
+
+#### Retrieve for Notifications
+
+- **Endpoint:** `POST /api/retrievefornotifications`
+- **Headers:** `Content-Type: application/json`
+- **Success Status:** 200
+- **Request Body:**
+  - `teacher`: Email of the teacher.
+  - `notification`: Text of the notification.
+- **Success Response Example:**
+  ```json
+  {
+    "recipients": ["student1@gmail.com", "student2@gmail.com"]
+  }
+  ```
+
+#### Error Responses
+
+- **Error Response Example:**
+
+```json
+{
+  "message": [
+    "each value in teacher must be an email",
+    "teacher must contain at least 1 elements",
+    "teacher must be an array"
+  ]
+}
+```
