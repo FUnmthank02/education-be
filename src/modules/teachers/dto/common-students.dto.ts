@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { IsArray, ArrayNotEmpty, IsEmail } from 'class-validator';
 import { Transform } from 'class-transformer';
 
