@@ -1,4 +1,4 @@
-# Education Connection Backend
+# Education Backend
 
 ## 1. Description
 This project, 'education-be', is a backend service designed to help teachers perform administrative functions for their students. It's built using the NestJS framework, offering robust API endpoints for clients.
@@ -37,31 +37,36 @@ To run this project, you will need to set up the following environment variables
 ```plaintext
 # MySQL Database
 #===
-DATABASE_URL="mysql://root:root@localhost:3306/education_db"
+DATABASE_URL="mysql://root:root@mysql:3306/education_db"
 PORT=8888
+MYSQL_ROOT_PASSWORD=root
+MYSQL_DATABASE=education_db
+MYSQL_USER=admin
+MYSQL_PASSWORD=admin
 ```
 
 ### 4.4. Run docker compose
 At folder `education-be`, to build, start and run services:
 ```bash
-docker-compose up
+docker-compose up --build
 ```
 
 ### 4.5. Import Postman collection
 Import the content of [Postman File](./education-be.postman_collection.json) to Postman following guide.
 ![Import postman guide](./images/import-postman-guide.png)
 
-
-### 4.6. Call the first api
-Call the first api to get response.
-![Test the first api](./images/test-first-api.png)
-
 ## 5. Other commands
+
+### 5.0. Database Migrations
+To run generate prisma:
+```bash
+npm run generate
+```
 
 ### 5.1. Database Migrations
 To run migrations:
 ```bash
-npm run migration
+npm run migrate
 ```
 
 ### 5.2. Seeding
@@ -90,4 +95,4 @@ npm run test:cov
 ```
 
 ## 6. Note
-- Attach the postman file: [Postman File](./education-connection.postman_collection.json)
+- Attach the postman file: [Postman File](./education-be.postman_collection.json)

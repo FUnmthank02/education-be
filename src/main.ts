@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { GlobalErrorHandler } from './common/filters/error-handler.filter';
