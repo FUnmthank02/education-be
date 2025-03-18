@@ -35,8 +35,6 @@ cd education-be
 
 To run this project, you will need to set up the following environment variables. You can do this by creating a `.env` file in folder `education-be`.
 ```plaintext
-# MySQL Database
-#===
 DATABASE_URL="mysql://root:root@mysql:3306/education_db"
 PORT=8888
 MYSQL_ROOT_PASSWORD=root
