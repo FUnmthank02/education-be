@@ -104,13 +104,13 @@ http://localhost:8888
 First, open an interactive shell session inside the MySQL container
 
 ```
-docker exec -it mysqldb sh
+docker exec -it mysql_nest sh
 ```
 
 To access MySQL's shell, use the credentials and port listed in `.env`
 
 ```
-mysql -h 127.0.0.1 -P 3306 -u root -ppassword education
+mysql -h 127.0.0.1 -P 3306 -u root -proot education_db
 ```
 
 Once in the shell, you can query the database (default db name is 'education')
@@ -135,7 +135,7 @@ Similarly, open another interactive shell session inside the api server containe
 ![test coverage](./docs/test-coverage.jpg)
 
 ```bash
-docker exec -it api_server npm run test:cov
+docker exec -it backend npm run test:cov
 ```
 
 ## About the Project
